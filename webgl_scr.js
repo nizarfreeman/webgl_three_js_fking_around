@@ -5,13 +5,16 @@ main();
 
 function initShaderProgram(gl, vsSource, fsSource)
 {
+    // loading both shaders, each with its type. "vertex and fragment"
     const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
     const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
     const shaderProgram = gl.createProgram();
+    // and assembling the program through attaching both shaders and linking them
     gl.attachShader(shaderProgram, vertexShader);
     gl.attachShader(shaderProgram, fragmentShader);
     gl.linkProgram(shaderProgram);
 
+    // the webGL context provides linking and compiling feedbacks through LINK_STATUS n COMPILE_STATUS constants
     if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS))
     {
         alert(`Unable to initialize shader program: ${gl.getProgramInfoLog(shaderProgram)}`);
@@ -20,8 +23,10 @@ function initShaderProgram(gl, vsSource, fsSource)
     return shaderProgram;
 }
 
+// here we get each shader source, compile it and return to initShaderProgram(), "loaded shader"
 function loadShader(gl, type, source)
 {
+    // the t
     const shader = gl.createShader(type);
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
@@ -37,6 +42,8 @@ function loadShader(gl, type, source)
 
 function main()
 {
+    // supplying vertix shader n fragmet shader in GLSL/webGL GLSL/OpenGL ES Shading Language,
+    // which is used for writing shaders that will run on the gpu
     const vsSource = `
         attribute vec4 aVertexPosition;
         uniform mat4 uModelViewMatrix;
@@ -54,18 +61,27 @@ function main()
         }
     `;
 
+    // grabing the canvas element from index.html
     const canvas = document.querySelector("#canvas_");
+    // and getting the webgl context
     const gl = canvas.getContext("webgl");
     if (!gl) { alert("WebGL not supported"); return; }
 
+    // making the shader program
     const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+    // the programInfo is basically a control panel object or let's say an object where we store all the data
+    // needed for the render process, by gathering the needed data onece n providing it once only, so it can
+    // be used without any further overhead done by each step lookup.
     const programInfo =
     {
+        // our shader program we made earlier, gl.useProgram(programInfo.program)
         program: shaderProgram,
+        // storing our shader attribute vec4 aVertexPosition.
         attribLocations:
         {
             vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
         },
+        // and uniforms too
         uniformLocations:
         {
             projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
