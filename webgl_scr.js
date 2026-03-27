@@ -94,6 +94,12 @@ function main()
     let rotation = 0.0;
     let lastTime = 0;
 
+    // this final block basically do two things:
+    // time rate rendering, unlike frame rate rendering which generates a specific number of frames per second
+    // time rate rendering is based on a timestamp, each frame is generated when a specific timestamp is passed.
+    // we do it here by getting delta which is the difference between last time (the current we capture when entering)
+    // the block, and current time)
+    // recursive call to function render() that will gonna keep rendering the object's infinite animation.
     function render(now)
     {
         now *= 0.001; // convert to seconds
