@@ -1,79 +1,123 @@
 import * as THREE from './node_modules/three/build/three.module.js';
+import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 
 const scene = new THREE.Scene();
 //fov, aspect ratio, planes
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set( 0, 0, 10 );
+camera.position.set( 0, 0, 15 );
 camera.lookAt( 0, 0, 0 );
 const renderer = new THREE.WebGLRenderer();
+
+//orbit
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.minDistance = 0.1;
+controls.maxDistance = 1500;
+controls.zoomSpeed = 2.0;
+controls.screenSpacePanning = true;
 
 // add a rendered and append an implicit canvas in the html.
 renderer.setSize(window.innerWidth, window.innerHeight); // the canvas will cover the whole scree
 document.body.appendChild(renderer.domElement);
 
-// declare a cube.
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
-const obj1 = new THREE.Mesh(geometry, material);
-obj1.position.set(6, -6, 0);
+const geometry = new THREE.SphereGeometry(3, 32, 32);
+const material = new THREE.MeshNormalMaterial({ flatShading: true });
+//const ball = new THREE.Mesh(geometry, material);
+//scene.add(ball);
 
-// declare a rectangle.
-const geometry5 = new THREE.BoxGeometry(2, 1, 1);
-const material5 = new THREE.MeshBasicMaterial({color: 0x00ff00});
-const obj5 = new THREE.Mesh(geometry5, material5);
-obj5.position.set(-6, -6, 0);
-
-// base squared pyramid
-const geometry2 = new THREE.ConeGeometry(1, 2, 4);
-const material2 = new THREE.MeshBasicMaterial({color: 0x00ff00});
-const obj2 = new THREE.Mesh(geometry2, material2);
-obj2.position.set(-6, 6, 0);
-
-// cone
-const geometry4 = new THREE.ConeGeometry(1, 2, 64);
-const material4 = new THREE.MeshBasicMaterial({color: 0x00ff00});
-const obj4 = new THREE.Mesh(geometry4, material4);
-obj4.position.set(6, 6, 0);
-
-// sphere
-const geometry3 = new THREE.SphereGeometry(3, 64, 64);
-const loader = new THREE.TextureLoader();
-const texture = loader.load('earthmap1k.jpg');
-//const material3 = new THREE.MeshBasicMaterial({color: 0xBEE0CC});
-const material3 = new THREE.MeshBasicMaterial({map: texture});
-const obj3 = new THREE.Mesh(geometry3, material3);
-
-// add and move the cam out to see it, since all objects gets rendered at the origin by default
-scene.add(obj2);
-scene.add(obj1);
-scene.add(obj3);
-scene.add(obj4);
-scene.add(obj5);
-
-// rendering loop
-// function animate(time)
+// function addBall()
 // {
-//     renderer.render(scene, camera);
+//     const ball = new THREE.Mesh(geometry, material);
+//     ball.position.x = THREE.MathUtils.randFloatSpread(50);
+//     ball.position.y = THREE.MathUtils.randFloatSpread(50);
+//     ball.position.z = THREE.MathUtils.randFloatSpread(50);
+//     ball.rotation.x = THREE.MathUtils.randFloatSpread(Math.PI);
+//     return  ball;
 // }
-// renderer.setAnimationLoop(animate);
 
-// rendering loop with animation
-function animate(time)
+
+// rejection simpling
+function isOverlapping(newPos, placedBalls, minDist)
 {
-    obj1.rotation.x = time / 2000;
-    obj1.rotation.y = time / 1000;
+    for (const ball of placedBalls)
+    {
+        const dist = newPos.distanceTo(ball.position);
+        if (dist < minDist)
+            return (true);
+    }
+    return (false);
+}
 
-    obj2.rotation.x = time / 2000;
-    obj2.rotation.y = time / 1000;
+function addBall(placedBalls, radius, spread, maxAttempts = 100)
+{
+    const minDist = radius * 2;
+    for (let index = 0; index < maxAttempts; index++)
+    {
+        const pos = new THREE.Vector3(THREE.MathUtils.randFloatSpread(spread), THREE.MathUtils.randFloatSpread(spread), THREE.MathUtils.randFloatSpread(spread));
+        if (!isOverlapping(pos, placedBalls, minDist))
+        {
+            const ball = new THREE.Mesh(geometry, material);
+            ball.position.copy(pos);
+            ball.userData.spin = 
+            {
+                x: THREE.MathUtils.randFloatSpread(0.02),
+                y: THREE.MathUtils.randFloatSpread(0.02),
+                z: THREE.MathUtils.randFloatSpread(0.02),
+            };
 
-    //obj3.rotation.x = time / 2000;
-    obj3.rotation.y = time / 1000;
+            ball.userData.spin = 
+            {
+              x: THREE.MathUtils.randFloatSpread(0.02),
+              y: THREE.MathUtils.randFloatSpread(0.02),
+              z: THREE.MathUtils.randFloatSpread(0.02),
+            };
+            ball.userData.velocity = new THREE.Vector3
+            (
+              THREE.MathUtils.randFloatSpread(0.05),
+              THREE.MathUtils.randFloatSpread(0.05),
+              THREE.MathUtils.randFloatSpread(0.05),
+            );
 
-    obj4.rotation.x = time / 2000;
-    obj4.rotation.y = time / 1000;
+            return (ball);
+        }
+    }
+    return (null);
+}
 
-    obj5.rotation.x = time / 2000;
-    obj5.rotation.y = time / 1000;
+let num = 20;
+const placedBalls = [];
+
+for (let index = 0; index < num; index++)
+{
+    let ball = addBall(placedBalls, 1, 100);
+    if (ball)
+    {
+        scene.add(ball);
+        placedBalls.push(ball);
+    }
+}
+
+const BOUND = 50;
+
+function animate()
+{
+    requestAnimationFrame(animate);
+    for (const ball of placedBalls)
+    {
+        ball.rotation.x += ball.userData.spin.x;
+        ball.rotation.y += ball.userData.spin.y;
+        ball.rotation.z += ball.userData.spin.z;
+
+        ball.position.add(ball.userData.velocity);
+
+        if (ball.position.x >  BOUND) ball.position.x = -BOUND;
+        if (ball.position.x < -BOUND) ball.position.x =  BOUND;
+        if (ball.position.y >  BOUND) ball.position.y = -BOUND;
+        if (ball.position.y < -BOUND) ball.position.y =  BOUND;
+        if (ball.position.z >  BOUND) ball.position.z = -BOUND;
+        if (ball.position.z < -BOUND) ball.position.z =  BOUND;
+    }
+    controls.update();
     renderer.render(scene, camera);
 }
-renderer.setAnimationLoop(animate);
+
+animate();
